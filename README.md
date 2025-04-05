@@ -1,0 +1,1 @@
+# QuantumSolver-Numerical-Approach-to-Schr-dinger-s-Equation
