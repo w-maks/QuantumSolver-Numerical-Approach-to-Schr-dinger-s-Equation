@@ -1,0 +1,1116 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="code"/></w:pPr><w:r><w:t><![CDATA[classdef projekt_EB_WM < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                       matlab.ui.Figure
+        INFORMACJEMenu                 matlab.ui.container.Menu
+        DzialanieprogramuMenu          matlab.ui.container.Menu
+        AutorzyMenu                    matlab.ui.container.Menu
+        GridLayout                     matlab.ui.container.GridLayout
+        LeftPanel                      matlab.ui.container.Panel
+        Label_2                        matlab.ui.control.Label
+        WprzypadkuniepodaniaadnychwartociwywietlaneswartocidomylneLabel  matlab.ui.control.Label
+        Label                          matlab.ui.control.Label
+        RYSUJButton                    matlab.ui.control.Button
+        UstawodpowiedniewartociPanel   matlab.ui.container.Panel
+        EditField_5                    matlab.ui.control.NumericEditField
+        EEditFieldLabel_5              matlab.ui.control.Label
+        DodatkowodlasuperpozycjiLabel  matlab.ui.control.Label
+        DodatkowodlastudniorazoscylatoraLabel  matlab.ui.control.Label
+        EeVEditField                   matlab.ui.control.NumericEditField
+        EeVEditFieldLabel              matlab.ui.control.Label
+        EEditFieldLabel_3              matlab.ui.control.Label
+        EEditFieldLabel_2              matlab.ui.control.Label
+        EditField_3                    matlab.ui.control.NumericEditField
+        EditField_2                    matlab.ui.control.NumericEditField
+        WybierzprzypadekoraztypywykreswPanel  matlab.ui.container.Panel
+        EEditFieldLabel_7              matlab.ui.control.Label
+        EEditFieldLabel_6              matlab.ui.control.Label
+        DropDown_4                     matlab.ui.control.DropDown
+        DropDown_2                     matlab.ui.control.DropDown
+        DropDown                       matlab.ui.control.DropDown
+        RightPanel                     matlab.ui.container.Panel
+        UIAxes                         matlab.ui.control.UIAxes
+        UIAxes2                        matlab.ui.control.UIAxes
+    end
+
+    % Properties that correspond to apps with auto-reflow
+    properties (Access = private)
+        onePanelWidth = 576;
+    end
+
+    %Funkcje związane ze studnią potencjału oraz oscylatorem były robione
+    %przez Wiktorię Maksymiak, funkcje skoku potencjału oraz bariery
+    %stworzyła Ewelina Borkowska, aplikacja została zaprojektowana wspólnie
+
+    %co chce dorobić:
+    %-naprawić ploty na ponownych odtworzeniach, nie zacinały się skale na osiach
+    %-dodać wypisywanie postaci rozwiązań
+    %-dodać wizualizacje funkcji z atomu wodoru dla promienia, harmonik,
+    %wielomianów hermita, legendre'a, laguerre, orbitali w 3d ( w osobnej
+    %stronie) z wypisywaniem postaci
+    %-zobaczyć jak aplikację udostępnić bez matlabowo
+    properties (Access = private)
+        E_ev=5; %energia
+        V_ev=20;
+        a=0.5
+        n=1;
+        m=2;
+    end
+    
+    methods (Access = private)
+    %FUNKCJE STUDNIA POTENCJALU-WM-------------
+        function stany_zwiazane_wykres_ST(app,ax)
+            [~,~,V_st,E,k,x]=psi_zwiazane(app.V_ev,app.a,2);
+            cla(ax)
+            ax.XLimMode='auto';
+            hold(ax, 'on');
+            plot(ax,x,V_st,'color',"#4682B4",'LineWidth',2);
+            legend(ax, 'off');
+            xlabel(ax,'x  [nm ]'); 
+            ylabel(ax,'V, E_n [eV]')
+            xticks(ax,-app.a:0.25:app.a)
+            ylim(ax,[app.V_ev 0])
+            txt=sprintf('ilość stanów związanych: %2.0f    \n',k);
+            title(ax,txt,'FontWeight','normal');
+            hold(ax, 'on');
+            max=length(E);
+            for i=1:max
+                ys(1)=E(i);
+                ys(2)=ys(1);
+                plot(ax,[-app.a app.a],ys,'color',"#C71585",'LineWidth',2);
+            end
+            hold(ax, 'off');
+        end
+        function animacja_psi_ST(app,ax)
+            [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,2);
+            if (app.n>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n i m, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+            end
+            [psi_M,~,~]=psit_zwiazane(psi_w,E,app.n,app.n,0,1);
+            cla(ax)
+            hold(ax, 'on');
+            ax.XLimMode='auto';
+            Nt=181;
+            ymax=5/4*max(max(real(psi_M)));
+            ymin=5/4*min(min(real(psi_M)));
+            for i=1:Nt
+                cla(ax)
+                plot(ax,x',real(psi_M(:,i)),'color',"#C71585",'LineWidth',2);
+                xticks(ax,-app.a:0.25:app.a)
+                ylim(ax,[ymin ymax])
+                grid on
+                legend(ax, 'off');
+                xlabel(ax,'x [nm]'); 
+                ylabel(ax,'\Psi(x,t)');
+                txt=sprintf('Psi(x,t) n=%2.0f    \n',app.n);
+                title(ax,txt,'FontWeight','normal')
+                pause(0.01)     
+            end
+            hold(ax, 'off');
+        end
+        function animacja_psi_superpozycja_ST(app,ax)
+            [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,2);
+            if app.n>app.m
+                temp=app.n;
+            else
+                temp=app.m;
+            end
+            if (app.n>l||app.m>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n i m, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+                app.m=3;
+            end
+            [psi_M,~,~]=psit_zwiazane(psi_w,E,app.n,temp,0,1);
+            [psi_N,~,~]=psit_zwiazane(psi_w,E,app.m,temp,0,1);
+            [psi_MN,~]=superpozycja(psi_M,psi_N);
+            cla(ax)
+            ax.XLimMode='auto';
+            Nt=181;
+            ymaxM=5/4*max(max(real(psi_M)));
+            yminM=5/4*min(min(real(psi_M)));
+            ymaxN=5/4*max(max(real(psi_N)));
+            yminN=5/4*min(min(real(psi_N)));
+            if ymaxM>ymaxN
+                ymax=ymaxM;
+            else
+                ymax=ymaxN;
+            end
+            if yminM<yminN
+                ymin=yminM;
+            else
+                ymin=yminN;
+            end
+            for i=1:Nt
+                cla(ax)
+                plot(ax,x',real(psi_MN(:,i)),'color',"#C71585",'LineWidth',2);
+                xticks(ax,-app.a:0.25:app.a)
+                ylim(ax,[ymin ymax])
+                grid on
+                legend(ax, 'off');
+                xlabel(ax,'x [nm]'); 
+                ylabel(ax,'\Psi(x,t)');
+                txt=sprintf('Psi(x,t) n=%2.0f  m=%2.0f\n',app.n, app.m);
+                title(ax,txt,'FontWeight','normal')
+                pause(0.01)     
+            end
+        end
+        function animacja_ro_superpozycja_ST(app,ax)
+           [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,1);
+           if app.n>app.m
+                temp=app.n;
+            else
+                temp=app.m;
+            end 
+           if (app.n>l||app.m>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n i m, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+                app.m=3;
+            end
+            [psi_M,~,~]=psit_zwiazane(psi_w,E,app.n,temp,1,0);
+            [psi_N,~,~]=psit_zwiazane(psi_w,E,app.m,temp,1,0);
+            [~,prob_MN]=superpozycja(psi_M,psi_N);
+            cla(ax)
+            ax.XLimMode='auto';
+            Nt=181;
+            ymax=5/4*max(max(prob_MN));
+            for i=1:Nt
+                cla(ax)
+                plot(ax,x',prob_MN(:,i),'color',"#C71585",'LineWidth',2);
+                xticks(ax,-app.a:0.25:app.a)
+                ylim(ax,[0 ymax])
+                grid on
+                legend(ax, 'off');
+                xlabel(ax,'x [nm]'); 
+                ylabel(ax,'|\Psi(x,t)|^2');
+                txt=sprintf('|Psi(x,t)|^2 n=%2.0f  m=%2.0f\n',app.n, app.m);
+                title(ax,txt,'FontWeight','normal')
+                pause(0.01)     
+            end
+        end
+        function ro_wykres_ST(app,ax)
+            [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,2);
+             if (app.n>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n i m, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+            end
+            [~,prob_M,~]=psit_zwiazane(psi_w,E,app.n,app.n,0,1);
+            cla(ax)
+            ax.XLimMode='auto';
+            plot(ax,x',prob_M(:,1),'color',"#C71585",'LineWidth',2);
+            hold(ax,"on");
+            xticks(ax,app.a:0.25:app.a);
+            ymax=5/4*max(max(prob_M));
+            ylim(ax,[0 ymax]);
+            grid on
+            legend(ax, 'off');
+            xlabel(ax,'x  [nm ]'); 
+            ylabel(ax,'|\Psi(x,t)|^2')
+            txt=sprintf('|Psi(x,t)|^2 n=%2.0f    \n',app.n);
+            title(ax,txt,'FontWeight','normal');
+            hold(ax,"off");
+        end
+        function psi_wykres_ST(app,ax)
+            [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,2);
+            if (app.n>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n i m, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+            end
+            [psi_M,~,~]=psit_zwiazane(psi_w,E,app.n,app.n,0,1);
+            cla(ax)
+            ax.XLimMode='auto';
+            hold(ax, 'on');
+            plot(ax,x',real(psi_M(:,1)),'color',"#C71585",'LineWidth',2);
+            xticks(ax,-app.a:0.25:app.a);
+            ymax=5/4*max(max(real(psi_M)));
+            ymin=5/4*min(min(real(psi_M)));
+            ylim(ax,[ymin ymax]);
+            grid on;
+            legend(ax, 'off');
+            xlabel(ax,'x [nm]'); 
+            ylabel(ax,'\Psi(x,t)');
+            txt=sprintf('Psi(x,t) n=%2.0f    \n',app.n);
+            title(ax,txt,'FontWeight','normal');
+            hold(ax, 'off');
+        end
+    %FUNKCJE OSCYLATOR-WM-------------
+        function stany_zwiazane_wykres_O(app,ax)
+            [~,~,V_st,E,k,x]=psi_zwiazane(app.V_ev,app.a,1);
+            cla(ax)
+            ax.XLimMode='auto';
+            hold(ax, 'on');
+            plot(ax,x,V_st,'color',"#4682B4",'LineWidth',2);
+            legend(ax, 'off');
+            xlabel(ax,'x  [nm ]'); 
+            ylabel(ax,'V, E_n [eV]')
+            xticks(ax,-app.a:0.25:app.a)
+            ylim(ax,[app.V_ev 0])
+            txt=sprintf('ilość stanów związanych: %2.0f    \n',k);
+            title(ax,txt,'FontWeight','normal');
+            hold(ax, 'on');
+            max=length(E);
+            for i=1:max
+                ys(1)=E(i);
+                ys(2)=ys(1);
+                plot(ax,[-app.a app.a],ys,'color',"#C71585",'LineWidth',2);
+            end
+            hold(ax, 'off');
+        end
+        function animacja_psi_O(app,ax)
+            [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,1);
+            if (app.n>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+            end
+            [psi_M,~,~]=psit_zwiazane(psi_w,E,app.n,app.n,0,0);
+            cla(ax)
+            ax.XLimMode='auto';
+            Nt=181;
+            ymax=5/4*max(max(real(psi_M)));
+            ymin=5/4*min(min(real(psi_M)));
+            hold(ax, 'on');
+            for i=1:Nt
+                cla(ax)
+                plot(ax,x',real(psi_M(:,i)),'color',"#C71585",'LineWidth',2);
+                xticks(ax,-app.a:0.25:app.a)
+                ylim(ax,[ymin ymax])
+                grid on
+                legend(ax, 'off');
+                xlabel(ax,'x [nm]'); 
+                ylabel(ax,'\Psi(x,t)');
+                txt=sprintf('Psi(x,t) n=%2.0f    \n',app.n);
+                title(ax,txt,'FontWeight','normal')
+                pause(0.01)     
+            end
+            hold(ax, 'off');
+        end
+        function animacja_psi_superpozycja_O(app,ax)
+            [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,1);
+            if app.n>app.m
+                temp=app.n;
+            else
+                temp=app.m;
+            end
+            if (app.n>l||app.m>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n i m, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+                app.m=3;
+            end
+            [psi_M,~,~]=psit_zwiazane(psi_w,E,app.n,temp,0,0);
+            [psi_N,~,~]=psit_zwiazane(psi_w,E,app.m,temp,0,0);
+            [psi_MN,~]=superpozycja(psi_M,psi_N);
+            cla(ax)
+            ax.XLimMode='auto';
+            Nt=181;
+            ymaxM=5/4*max(max(real(psi_M)));
+            yminM=5/4*min(min(real(psi_M)));
+            ymaxN=5/4*max(max(real(psi_N)));
+            yminN=5/4*min(min(real(psi_N)));
+            if ymaxM>ymaxN
+                ymax=ymaxM;
+            else
+                ymax=ymaxN;
+            end
+            if yminM<yminN
+                ymin=yminM;
+            else
+                ymin=yminN;
+            end
+            for i=1:Nt
+                cla(ax)
+                plot(ax,x',real(psi_MN(:,i)),'color',"#C71585",'LineWidth',2);
+                xticks(ax,-app.a:0.25:app.a)
+                ylim(ax,[ymin ymax])
+                grid on
+                legend(ax, 'off');
+                xlabel(ax,'x [nm]'); 
+                ylabel(ax,'\Psi(x,t)');
+                txt=sprintf('Psi(x,t) n=%2.0f  m=%2.0f\n',app.n, app.m);
+                title(ax,txt,'FontWeight','normal')
+                pause(0.01)     
+            end
+        end
+
+        function animacja_ro_superpozycja_O(app,ax)
+            if app.n>app.m
+                temp=app.n;
+            else
+                temp=app.m;
+            end
+            [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,1);
+            if (app.n>l||app.m>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n i m, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+                app.m=3;
+            end
+            pause(0.01)   
+            [psi_M,~,~]=psit_zwiazane(psi_w,E,app.n,temp,1,0);
+            [psi_N,~,~]=psit_zwiazane(psi_w,E,app.m,temp,1,0);
+            [~,prob_MN]=superpozycja(psi_M,psi_N);
+            cla(ax)
+            ax.XLimMode='auto';
+            Nt=181;
+            ymax=5/4*max(max(prob_MN));
+            hold(ax, 'on');
+            for i=1:Nt
+                cla(ax)
+                plot(ax,x',prob_MN(:,i),'color',"#C71585",'LineWidth',2);
+                xticks(ax,-app.a:0.25:app.a)
+                ylim(ax,[0 ymax])
+                grid on
+                legend(ax, 'off');
+                xlabel(ax,'x [nm]'); 
+                ylabel(ax,'|\Psi(x,t)|^2');
+                txt=sprintf('|Psi(x,t)|^2 n=%2.0f  m=%2.0f\n',app.n, app.m);
+                title(ax,txt,'FontWeight','normal')
+                pause(0.01)     
+            end
+            hold(ax, 'off');
+        end
+        function ro_wykres_O(app,ax)
+            [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,1);
+            if (app.n>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+            end
+            [~,prob_M,~]=psit_zwiazane(psi_w,E,app.n,app.n,0,0);
+            cla(ax)
+            ax.XLimMode='auto';
+            plot(ax,x',prob_M(:,1),'color',"#C71585",'LineWidth',2);
+            hold(ax,"on");
+            xticks(ax,-app.a:0.25:app.a);
+            ymax=5/4*max(max(prob_M));
+            ylim(ax,[0 ymax]);
+            grid on
+            legend(ax, 'off');
+            xlabel(ax,'x  [nm ]'); 
+            ylabel(ax,'|\Psi(x,t)|^2')
+            txt=sprintf('|Psi(x,t)|^2 n=%2.0f    \n',app.n);
+            title(ax,txt,'FontWeight','normal');
+            hold(ax,"off");
+        end
+        function psi_wykres_O(app,ax)
+            [psi_w,~,~,E,l,x]=psi_zwiazane(app.V_ev,app.a,1);
+            if (app.n>l)
+                uialert(app.UIFigure, 'Dla wybranego V źle dobrane n, zmiana danych na domyślne', 'Wykryty błąd', 'Icon', 'warning');
+                app.V_ev=-400;
+                app.n=2;
+            end
+            [psi_M,~,~]=psit_zwiazane(psi_w,E,app.n,app.n,0,0);
+            cla(ax)
+            ax.XLimMode='auto';
+            hold(ax, 'on');
+            plot(ax,x',real(psi_M(:,1)),'color',"#C71585",'LineWidth',2);
+            xticks(ax,-app.a:0.25:app.a);
+            ymax=5/4*max(max(real(psi_M)));
+            ymin=5/4*min(min(real(psi_M)));
+            ylim(ax,[ymin ymax]);
+            grid on;
+            legend(ax, 'off');
+            xlabel(ax,'x [nm]'); 
+            ylabel(ax,'\Psi(x,t)');
+            txt=sprintf('Psi(x,t) n=%2.0f    \n',app.n);
+            title(ax,txt,'FontWeight','normal');
+            hold(ax, 'off');
+        end
+
+    %FUNKCJE SKOK POTENCJALU-EB----------
+        function RiT_skok(app,ax)
+            cla(ax);
+            V=1.6021766208e-19*app.V_ev; %[J]
+            E=1.6021766208e-19*app.E_ev; %[J]
+            m_e=9.10938291e-31; %[kg]
+            h=6.626070040e-34;
+            h_k=h/(2*pi); % h kreslone
+            E_r = linspace(0, 4*V, 1000);
+            R_v = zeros(size(E_r));
+            T_v = zeros(size(E_r));
+            %współczynniki odbicia i transmisji
+            for i = 1:length(E_r)
+                E_l = E_r(i);
+                k_l = sqrt(2*m_e*E_l)/h_k;
+                if E_l < V
+                % Gdy energia jest mniejsza niż potencjał- cała fala jest odbita
+                R_v(i) = 1;
+                T_v(i) = 0;
+                else
+                % Gdy energia jest większa niż potencjał
+                k2_l = sqrt(2*m_e*(E_l-V))/h_k;
+                R_l = ((k_l - k2_l)/(k_l + k2_l))^2;
+                T_l = 1 - R_l;
+                R_v(i) = R_l;
+                T_v(i) = T_l;
+                end
+            end
+            %punkt na wykresie dla podanych wartości E i V
+            E_norm = app.E_ev / app.V_ev;
+            if E_norm < 1
+                % Dla E<V całkowite odbicie
+                R_point = 1;
+                T_point = 0;
+            else
+                % Dla E>=V
+                R_point = ((sqrt(E) - sqrt(E-V))/(sqrt(E) + sqrt(E-V)))^2;
+                T_point = 1 - R_point;
+            end
+            hold (ax, 'on');
+            plot(ax,E_norm, R_point, 'MarkerSize', 5, 'LineWidth', 2, 'Marker','*');
+            plot(ax,E_norm, T_point, 'MarkerSize', 5, 'LineWidth', 2, 'Marker','*');
+            text(ax,E_norm, R_point, ['R = ' num2str(R_point)], 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+            text(ax,E_norm, T_point, ['T = ' num2str(T_point)], 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+            plot(ax,E_r/V, R_v, 'r', 'LineWidth', 2);
+            plot(ax,E_r/V, T_v, 'b', 'LineWidth', 2);
+            xlabel(ax,'E/V');
+            ylabel(ax,'Współczynniki R i T');
+            title(ax,'Zależność współczynników R i T od E/V');
+            xlim(ax,[min(E_r/V) max(E_r/V)]);
+            ylim(ax,[0 1]);
+            legend(ax,'R', 'T');
+            grid on;
+            xticks(ax,'auto');
+            hold (ax, 'off');
+        end
+        function gestoscprawd_skok(app,ax)
+              cla(ax);
+              [psi_X,~,xR,~]= calculatePsiX(app.E_ev, app.V_ev);
+              xR_nm = xR ./ 1e-9;
+              g_prawd=conj(psi_X).*psi_X;
+              g_prawd=g_prawd/max(g_prawd); %normalizacja
+              plot(ax,xR_nm,g_prawd,'b', 'lineWidth', 1);
+              legend(ax, 'off');
+              xlim(ax,[min(xR_nm) max(xR_nm)]);
+              ylim(ax,[0 max(g_prawd)]);
+              title(ax,'Gestosc prawdopodobienstwa w funkcji położenia');
+              area(ax,xR_nm,g_prawd,'Facecolor','b', 'FaceAlpha', 0.2);
+              ylabel(ax,'\Psi^* \Psi')
+              xticks(ax,'auto');
+              grid on;
+        end
+        function ImiRe_skokpotencjalu(app,ax)
+               cla(ax);
+               hold (ax, 'on');
+               [psi_X,~,xR,psi_X_odbita]= calculatePsiX(app.E_ev, app.V_ev);
+               xR_nm = xR ./ 1e-9;
+               plot(ax,xR_nm,real(psi_X),'r', 'lineWidth', 1);
+               title(ax,'Wykres Im oraz Re \Psi w funkcji położenia');
+               plot(ax,xR_nm,imag(psi_X),'b', 'lineWidth', 1);
+               legend(ax,'R','Im')
+               xlim(ax,[min(xR_nm) max(xR_nm)]);
+               if max(imag(psi_X))>max(real(psi_X))
+                   ymax=max(imag(psi_X));
+               else
+                   ymax=max(real(psi_X));
+               end
+               if min(imag(psi_X))<min(real(psi_X))
+                   ymin=min(imag(psi_X));
+               else
+                   ymin=min(real(psi_X));
+               end
+               ylim(ax,[ymin,ymax]);
+               if(app.E_ev>app.V_ev)
+               plot(ax,xR_nm,real(psi_X_odbita),'r', 'lineWidth', 1);
+               plot(ax,xR_nm,imag(psi_X_odbita),'b', 'lineWidth', 1);
+               end
+               ylabel(ax,'psi');
+               xticks(ax,'auto');
+               hold (ax, 'off');
+               grid on;
+        end
+        function animacja_skokpotencjalu(app,ax)
+            cla(ax);
+            hold (ax, 'on');
+            [psi_X,psi_T,xR,psi_X_odbita]= calculatePsiX(app.E_ev, app.V_ev);
+            xR_nm = xR ./ 1e-9; 
+            for i=1:100
+                cla(ax);
+                psi_R =real(psi_X) .* real(psi_T(i)) ./ max(real(psi_X)); %normalizacja
+                plot(ax,xR_nm, psi_R, 'r', 'lineWidth', 2);
+                if(app.E_ev>app.V_ev)
+                psi_R_odbita=real(psi_X_odbita)*real(psi_T(i));
+                plot(ax,xR_nm, psi_R_odbita, 'r', 'lineWidth', 2);
+                end
+                legend(ax, 'off');
+                xlim(ax,[min(xR_nm) max(xR_nm)]);
+                ylim(ax,[-1.1 1.1]);
+                xlabel(ax,'x [nm]');
+                ylabel(ax,'Re(psi)');
+                xticks(ax,'auto');
+                grid on;
+                pause(0.1);
+            end 
+            hold (ax, 'off');
+        end
+    %FUNKCJE BARIERY POTENCJALU-EB-------------
+        function gestoscprawd_bariera(app,ax)
+              cla(ax);
+              hold (ax, 'on');
+              [psi_X,~,xR]= psix_bariera(app.E_ev, app.V_ev);
+              xR_nm = xR ./ 1e-9;
+              g_prawd=conj(psi_X).*psi_X;
+              g_prawd=g_prawd/max(g_prawd); %normalizacja
+              plot(ax,xR_nm,g_prawd,'b', 'lineWidth', 1);
+              legend(ax, 'off');
+              title(ax,'Gestosc prawdopodobienstwa w funkcji położenia');
+              area(ax,xR_nm,g_prawd,'Facecolor','b', 'FaceAlpha', 0.2);
+              ylabel(ax,'\Psi^* \Psi')
+              xlim(ax,[min(xR_nm) max(xR_nm)]);
+              ylim(ax, [0 max(g_prawd)]);
+              grid on;
+              xticks(ax,'auto');
+              hold (ax, 'off');
+        end
+        function ImiRe_bariera(app,ax)
+               cla(ax);
+               hold (ax, 'on');
+               [psi_X,~,xR]= psix_bariera(app.E_ev, app.V_ev);
+               xR_nm = xR ./ 1e-9;
+               plot(ax,xR_nm,real(psi_X),'r', 'lineWidth', 1);
+               title(ax,'Wykres Im oraz Re \Psi w funkcji położenia');
+               plot(ax,xR_nm,imag(psi_X),'b', 'lineWidth', 1)
+               legend(ax,'R','Im')
+               ylabel(ax,'psi');
+               xlim(ax,[min(xR_nm) max(xR_nm)]);
+               if max(imag(psi_X))>max(real(psi_X))
+                   ymax=max(imag(psi_X));
+               else
+                   ymax=max(real(psi_X));
+               end
+               if min(imag(psi_X))<min(real(psi_X))
+                   ymin=min(imag(psi_X));
+               else
+                   ymin=min(real(psi_X));
+               end
+               ylim(ax,[ymin,ymax]);
+               hold (ax, 'off');
+               xticks(ax,'auto');
+               grid on;
+        end
+        function animacja_bariera(app,ax)
+                cla(ax);
+                hold (ax, 'on');
+                [psi_X,psi_T,xR]= psix_bariera(app.E_ev, app.V_ev);
+                xR_nm = xR ./ 1e-9; 
+                for i=1:100
+                    cla(ax);
+                    psi_R =real(psi_X) .* real(psi_T(i)) ./ max(real(psi_X)); %normalizacja
+                    plot(ax,xR_nm, psi_R, 'r', 'lineWidth', 2);
+                    legend(ax, 'off');
+                    xlim(ax,[min(xR_nm) max(xR_nm)]);
+                    ylim(ax,[-1.1 1.1]);
+                    xlabel(ax,'x [nm]');
+                    ylabel(ax,'Re(psi)');
+                    grid on;
+                    pause(0.1);
+                end 
+                hold (ax, 'off');
+                xticks(ax,'auto');
+        end
+        function RiT_bariera(app,ax)
+                cla(ax);
+                hold(ax, 'on');
+                % Constants
+                V = 1.6021766208e-19 * app.V_ev; % [J]
+                E = 1.6021766208e-19 * app.E_ev; % [J]
+                m_e = 9.10938291e-31; 
+                h = 6.626070040e-34; 
+                h_bar = h / (2 * pi); 
+                a1 = 0.5e-9; % szerokosc bariery
+                E_r = linspace(0, 2 * V, 1000); 
+                v0 = (2 * m_e * a1^2 * V) / h_bar^2;
+                epsilon = (2 * m_e * a1^2 * E) / h_bar^2;
+                R_v = zeros(size(E_r));
+                T_v = zeros(size(E_r));
+                for i = 1:length(E_r)
+                    r = E_r(i) / V; 
+                    if r <= 1
+                        T_v(i) = (1 + (sinh(sqrt(v0*(1-r))))^2 / (4*r*(1-r)))^(-1);
+                        R_v(i) = 1 - T_v(i);
+                    else
+                        T_v(i) = 1 / (1 + (sin(v0 *(r-1)))^2 / (4*r*(r-1)));
+                        R_v(i) = 1 - T_v(i);
+                    end
+                end
+                E_norm = app.E_ev / app.V_ev;
+                if E_norm <= 1
+                    % For E < V
+                    T_point = (1 + (sinh(sqrt(v0 * (1 - epsilon))))^2 / (4*epsilon * (1-epsilon)))^(-1);
+                    R_point = 1 - T_point;
+                else
+                    % For E >= V
+                    T_point = 1 / (1 + (sin(sqrt(v0 * (epsilon - 1))))^2 / (4 * epsilon * (epsilon - 1)));
+                    R_point = 1 - T_point;
+                end
+                plot(ax, E_r/V, R_v, 'r', 'LineWidth', 2);
+                plot(ax, E_r/V, T_v, 'b', 'LineWidth', 2);
+                plot(ax, E_norm, R_point, 'ro', 'MarkerSize', 5, 'LineWidth', 2);
+                plot(ax, E_norm, T_point, 'bo', 'MarkerSize', 5, 'LineWidth', 2);
+                text(ax, E_norm, R_point, ['R=' num2str(R_point)], 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+                text(ax, E_norm, T_point, ['T=' num2str(T_point)], 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+                xlabel(ax, 'E/V');
+                ylabel(ax, 'Współczynniki R i T');
+                title(ax, 'Zależność współczynników R i T od E/V');
+                legend(ax, 'R', 'T');
+                xlim(ax,[min(E_r/V) max(E_r/V)]);
+                ylim(ax,[0 1]);
+                grid on;
+                xticks(ax,'auto');
+                hold(ax, 'off');
+        end     
+
+    %INNE FUNKCJE 
+        function dostosuj_potencjal(app,temp)
+                if temp==0
+                    if app.V_ev>0
+                        app.V_ev=-app.V_ev;
+                    end
+                else
+                     if app.V_ev<0
+                        app.V_ev=-app.V_ev;
+                    end
+                end
+        end
+    end
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Value changed function: EeVEditField
+        function EeVEditFieldValueChanged(app, event)
+        % if strcmp(app.DropDown.Value,"Skok potencjalu") || strcmp(app.DropDown.Value,"Bariera potencjalu")
+        %     if app.EeVEditField.Value < 0
+        %         app.E_ev=-app.EeVEditField.Value; 
+        %         uialert(app.UIFigure, 'Dla skoku potencjalu oraz bariery podana energia musi byc większa od zera. Nastąpiła zmiana znaku przy podanej wartosci E', 'Wykryty blad', 'Icon', 'warning');
+            if app.EeVEditField.Value==0
+                app.E_ev=1;
+                app.EeVEditField.Value=app.E_ev;
+                uialert(app.UIFigure, 'Dla skoku potencjalu oraz bariery podany potencjal musi byc większy od zera. Nastąpiła zmiana wartości na domyślną dla danego przypadku E=1 eV', 'Wykryty blad', 'Icon', 'warning');
+            else
+                app.E_ev=app.EeVEditField.Value;   
+            end
+        % end
+        end
+
+        % Value changed function: EditField_2
+        function EditField_2ValueChanged(app, event)
+           if strcmp(app.DropDown.Value,"Oscylator") || strcmp(app.DropDown.Value,"Studnia potencjalu")
+                if app.EditField_2.Value>0
+                    app.V_ev=-app.EditField_2.Value;
+                    app.EditField_2.Value = app.V_ev;
+                    uialert(app.UIFigure, 'Dla oscylatora oraz studni podany potencjał musi być mniejszy od zera. Nastąpiła zmiana znaku przy podanej wartości V', 'Wykryty błąd', 'Icon', 'warning');
+                elseif app.EditField_2.Value==0
+                    app.V_ev = -400;
+                    app.EditField_2.Value = app.V_ev;
+                    uialert(app.UIFigure, 'Dla oscylatora oraz studni podany potencjał musi być mniejszy od zera. Nastąpiła zmiana wartości na domyślną dla danego przypadku V=400 eV', 'Wykryty błąd', 'Icon', 'warning');
+                else
+                    app.V_ev = app.EditField_2.Value;
+                end
+            elseif strcmp(app.DropDown.Value,"Skok potencjalu") || strcmp(app.DropDown.Value,"Bariera potencjalu")
+                if app.EditField_2.Value < 0
+                    app.V_ev = -app.EditField_2.Value;
+                    app.EditField_2.Value = app.V_ev;
+                    uialert(app.UIFigure, 'Dla skoku potencjału oraz bariery podany potencjał musi być większy od zera. Nastąpiła zmiana znaku przy podanej wartości V', 'Wykryty błąd', 'Icon', 'warning');
+                elseif app.EditField_2.Value == 0
+                    app.V_ev = 2;
+                    app.EditField_2.Value = app.V_ev;
+                    uialert(app.UIFigure, 'Dla skoku potencjału oraz bariery podany potencjał musi być większy od zera. Nastąpiła zmiana wartości na domyślną dla danego przypadku V=2 eV', 'Wykryty błąd', 'Icon', 'warning');
+                else
+                    app.V_ev = app.EditField_2.Value;
+                end
+            end
+        end
+
+        % Value changed function: EditField_3
+        function EditField_3ValueChanged(app, event)
+            app.n=app.EditField_3.Value;
+        end
+
+        % Value changed function: EditField_5
+        function EditField_5ValueChanged(app, event)
+            app.m=app.EditField_5.Value;
+        end
+
+        % Value changed function: DropDown
+        function DropDownValueChanged(app, event)
+            value = app.DropDown.Value;
+            switch value
+                case 'Skok potencjalu'
+                    app.DropDown_2.Items = {'Re(psi(x)) i Im(psi(x))', '|psi(x)|^2', 'R i T'};
+                    app.DropDown_4.Items = {'Re(psi(x)) i Im(psi(x))', '|psi(x)|^2', 'R i T', 'Animacja Re(psi(x,t))'};
+                case 'Bariera potencjalu'
+                    app.DropDown_2.Items = {'Re(psi(x)) i Im(psi(x))', '|psi(x)|^2', 'R i T'};
+                    app.DropDown_4.Items = {'Re(psi(x)) i Im(psi(x))', '|psi(x)|^2', 'Animacja Re(psi(x,t))', 'R i T'};
+                case 'Studnia potencjalu'
+                    app.DropDown_2.Items = {'Re(psi(x))', '|psi(x)|^2', 'Stany związane'};
+                    app.DropDown_4.Items = {'Re(psi(x))', '|psi(x)|^2', 'Animacja Re(psi(x,t))', 'Animacja superpozycji re(psi(x,t))','Animacja superpozycji |psi(x)|^2', 'Stany związane'};
+                case 'Oscylator'
+                    app.DropDown_2.Items = {'Re(psi(x))', '|psi(x)|^2', 'Stany związane'};
+                    app.DropDown_4.Items = {'Re(psi(x))', '|psi(x)|^2', 'Animacja Re(psi(x,t))', 'Animacja superpozycji re(psi(x,t))','Animacja superpozycji |psi(x)|^2', 'Stany związane'};
+                otherwise
+                    app.DropDown_2.Items = {''};
+                    app.DropDown_4.Items={''};
+            end
+        end
+
+        % Button pushed function: RYSUJButton
+        function RYSUJButtonPushed(app, event)
+            figure('Visible', 'off');
+            %Skok potencjalu--------------------------------
+            if strcmp(app.DropDown.Value,"Skok potencjalu")
+                 dostosuj_potencjal(app,1)
+                 if strcmp(app.DropDown_2.Value,"Re(psi(x)) i Im(psi(x))")
+                     ImiRe_skokpotencjalu(app,app.UIAxes2)
+                 elseif strcmp(app.DropDown_2.Value,"R i T")
+                     RiT_skok(app,app.UIAxes2);
+                 elseif strcmp(app.DropDown_2.Value, "|psi(x)|^2")
+                     gestoscprawd_skok(app,app.UIAxes2)
+                 end
+                 if strcmp(app.DropDown_4.Value,"Re(psi(x)) i Im(psi(x))")
+                     ImiRe_skokpotencjalu(app,app.UIAxes)
+                 elseif strcmp(app.DropDown_4.Value,"R i T")
+                     RiT_skok(app,app.UIAxes);
+                 elseif strcmp(app.DropDown_4.Value, "|psi(x)|^2")
+                     gestoscprawd_skok(app,app.UIAxes)
+                 elseif strcmp(app.DropDown_4.Value,"Animacja Re(psi(x,t))")
+                     animacja_skokpotencjalu(app,app.UIAxes)
+                 end
+            %Studnia potencjalu-----------------------
+             elseif strcmp(app.DropDown.Value,"Studnia potencjalu")
+                    dostosuj_potencjal(app,0)
+                    if strcmp(app.DropDown_2.Value,"Re(psi(x))")
+                        psi_wykres_ST(app,app.UIAxes2)
+                    elseif strcmp(app.DropDown_2.Value,"|psi(x)|^2")
+                        ro_wykres_ST(app,app.UIAxes2)
+                    elseif strcmp(app.DropDown_2.Value,"Stany związane")
+                        stany_zwiazane_wykres_ST(app,app.UIAxes2)
+                    end
+                    if strcmp(app.DropDown_4.Value,"Re(psi(x))")
+                        psi_wykres_ST(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"|psi(x)|^2")
+                        ro_wykres_ST(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"Animacja Re(psi(x,t))")
+                        animacja_psi_ST(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"Animacja superpozycji re(psi(x,t))")
+                        animacja_psi_superpozycja_ST(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"Animacja superpozycji |psi(x)|^2")
+                        animacja_ro_superpozycja_ST(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"Stany związane")
+                        stany_zwiazane_wykres_ST(app,app.UIAxes)
+                    end
+            %Oscylator-----------------------
+             elseif strcmp(app.DropDown.Value,"Oscylator")
+                    dostosuj_potencjal(app,0) 
+                    if strcmp(app.DropDown_2.Value,"Re(psi(x))")
+                        psi_wykres_O(app,app.UIAxes2)
+                    elseif strcmp(app.DropDown_2.Value,"|psi(x)|^2")
+                        ro_wykres_O(app,app.UIAxes2)
+                    elseif strcmp(app.DropDown_2.Value,"Stany związane")
+                        stany_zwiazane_wykres_O(app,app.UIAxes2)
+                    end
+                    if strcmp(app.DropDown_4.Value,"Re(psi(x))")
+                        psi_wykres_O(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"|psi(x)|^2")
+                        ro_wykres_O(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"Animacja Re(psi(x,t))")
+                        animacja_psi_O(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"Animacja superpozycji re(psi(x,t))")
+                        animacja_psi_superpozycja_O(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"Animacja superpozycji |psi(x)|^2")
+                        animacja_ro_superpozycja_O(app,app.UIAxes)
+                    elseif strcmp(app.DropDown_4.Value,"Stany związane")
+                        stany_zwiazane_wykres_O(app,app.UIAxes)
+                    end
+
+               %Bariera potencjalu----------------------
+                elseif strcmp(app.DropDown.Value,"Bariera potencjalu")
+                     dostosuj_potencjal(app,1)
+                 if strcmp(app.DropDown_2.Value,"Re(psi(x)) i Im(psi(x))")
+                     ImiRe_bariera(app,app.UIAxes2);
+                 elseif strcmp(app.DropDown_2.Value,"R i T")
+                     RiT_bariera(app,app.UIAxes2);
+                 elseif strcmp(app.DropDown_2.Value, "|psi(x)|^2")
+                     gestoscprawd_bariera(app,app.UIAxes2);
+                 end
+                 if strcmp(app.DropDown_4.Value,"Re(psi(x)) i Im(psi(x))")
+                     ImiRe_bariera(app,app.UIAxes);
+                 elseif strcmp(app.DropDown_4.Value,"R i T")
+                     RiT_bariera(app,app.UIAxes);
+                 elseif strcmp(app.DropDown_4.Value, "|psi(x)|^2")
+                     gestoscprawd_bariera(app,app.UIAxes);
+                 elseif strcmp(app.DropDown_4.Value,"Animacja Re(psi(x,t))")
+                     animacja_bariera(app,app.UIAxes);
+                 end
+            end
+            app.EeVEditField.Value = app.E_ev;
+            app.EditField_2.Value = app.V_ev;
+            app.EditField_3.Value = app.n;
+            app.EditField_5.Value = app.m;
+        end
+
+        % Menu selected function: DzialanieprogramuMenu
+        function DzialanieprogramuMenuSelected(app, event)
+            dzialanieprogramu = sprintf('Aplikacja  służy do wizualizacji i analizy różnych aspektów mechaniki kwantowej. Użytkownik ma możliwość wyboru różnych scenariuszy fizycznych (jak skok potencjału, bariera potencjału, studnia potencjału, oscylator) i dostosowania kluczowych parametrów, takich jak energia potencjału (V), energia cząstki (E), oraz inne specyficzne wartości dla danego scenariusza. Aplikacja pozwala na generowanie i porównywanie wykresów funkcji falowej (psi) oraz ich właściwości, jak gęstość prawdopodobieństwa i współczynniki odbicia/transmisji. Istnieje również opcja animacji.');
+            uialert(app.UIFigure,dzialanieprogramu, 'Dzialanie programu', 'Icon', 'Info');
+        end
+
+        % Menu selected function: AutorzyMenu
+        function AutorzyMenuSelected(app, event)
+            autorzy = sprintf('Ewelina Borkowska (email: eborkowska@student.agh.edu.pl), Wiktoria Maksymiak (email: wmaksymiak@student.agh.edu.pl)');
+            uialert(app.UIFigure,autorzy, 'Autorzy', 'Icon', 'Info');
+        end
+
+        % Changes arrangement of the app based on UIFigure width
+        function updateAppLayout(app, event)
+            currentFigureWidth = app.UIFigure.Position(3);
+            if(currentFigureWidth <= app.onePanelWidth)
+                % Change to a 2x1 grid
+                app.GridLayout.RowHeight = {505, 505};
+                app.GridLayout.ColumnWidth = {'1x'};
+                app.RightPanel.Layout.Row = 2;
+                app.RightPanel.Layout.Column = 1;
+            else
+                % Change to a 1x2 grid
+                app.GridLayout.RowHeight = {'1x'};
+                app.GridLayout.ColumnWidth = {226, '1x'};
+                app.RightPanel.Layout.Row = 1;
+                app.RightPanel.Layout.Column = 2;
+            end
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.AutoResizeChildren = 'off';
+            app.UIFigure.Position = [100 100 664 505];
+            app.UIFigure.Name = 'MATLAB App';
+            app.UIFigure.SizeChangedFcn = createCallbackFcn(app, @updateAppLayout, true);
+
+            % Create INFORMACJEMenu
+            app.INFORMACJEMenu = uimenu(app.UIFigure);
+            app.INFORMACJEMenu.Text = 'INFORMACJE';
+
+            % Create DzialanieprogramuMenu
+            app.DzialanieprogramuMenu = uimenu(app.INFORMACJEMenu);
+            app.DzialanieprogramuMenu.MenuSelectedFcn = createCallbackFcn(app, @DzialanieprogramuMenuSelected, true);
+            app.DzialanieprogramuMenu.Text = 'Dzialanie programu';
+
+            % Create AutorzyMenu
+            app.AutorzyMenu = uimenu(app.INFORMACJEMenu);
+            app.AutorzyMenu.MenuSelectedFcn = createCallbackFcn(app, @AutorzyMenuSelected, true);
+            app.AutorzyMenu.Text = 'Autorzy';
+
+            % Create GridLayout
+            app.GridLayout = uigridlayout(app.UIFigure);
+            app.GridLayout.ColumnWidth = {226, '1x'};
+            app.GridLayout.RowHeight = {'1x'};
+            app.GridLayout.ColumnSpacing = 0;
+            app.GridLayout.RowSpacing = 0;
+            app.GridLayout.Padding = [0 0 0 0];
+            app.GridLayout.Scrollable = 'on';
+
+            % Create LeftPanel
+            app.LeftPanel = uipanel(app.GridLayout);
+            app.LeftPanel.BackgroundColor = [0.9608 0.8275 0.9608];
+            app.LeftPanel.Layout.Row = 1;
+            app.LeftPanel.Layout.Column = 1;
+
+            % Create WybierzprzypadekoraztypywykreswPanel
+            app.WybierzprzypadekoraztypywykreswPanel = uipanel(app.LeftPanel);
+            app.WybierzprzypadekoraztypywykreswPanel.Title = 'Wybierz przypadek oraz typy wykresów';
+            app.WybierzprzypadekoraztypywykreswPanel.BackgroundColor = [0.8196 0.5098 0.7294];
+            app.WybierzprzypadekoraztypywykreswPanel.Position = [4 360 215 131];
+
+            % Create DropDown
+            app.DropDown = uidropdown(app.WybierzprzypadekoraztypywykreswPanel);
+            app.DropDown.Items = {'Skok potencjalu', 'Bariera potencjalu', 'Studnia potencjalu', 'Oscylator'};
+            app.DropDown.ValueChangedFcn = createCallbackFcn(app, @DropDownValueChanged, true);
+            app.DropDown.Position = [35 77 149 22];
+            app.DropDown.Value = 'Skok potencjalu';
+
+            % Create DropDown_2
+            app.DropDown_2 = uidropdown(app.WybierzprzypadekoraztypywykreswPanel);
+            app.DropDown_2.Items = {'Re(psi(x)) i Im(psi(x))', '|psi(x)|^2', 'R i T'};
+            app.DropDown_2.Position = [35 43 149 25];
+            app.DropDown_2.Value = 'Re(psi(x)) i Im(psi(x))';
+
+            % Create DropDown_4
+            app.DropDown_4 = uidropdown(app.WybierzprzypadekoraztypywykreswPanel);
+            app.DropDown_4.Items = {'Re(psi(x)) i Im(psi(x))', '|psi(x)|^2', 'R i T', 'Animacja Re(psi(x,t))'};
+            app.DropDown_4.Position = [35 6 149 25];
+            app.DropDown_4.Value = 'Re(psi(x)) i Im(psi(x))';
+
+            % Create EEditFieldLabel_6
+            app.EEditFieldLabel_6 = uilabel(app.WybierzprzypadekoraztypywykreswPanel);
+            app.EEditFieldLabel_6.HorizontalAlignment = 'right';
+            app.EEditFieldLabel_6.Position = [5 43 25 25];
+            app.EEditFieldLabel_6.Text = '1.';
+
+            % Create EEditFieldLabel_7
+            app.EEditFieldLabel_7 = uilabel(app.WybierzprzypadekoraztypywykreswPanel);
+            app.EEditFieldLabel_7.HorizontalAlignment = 'right';
+            app.EEditFieldLabel_7.Position = [5 6 25 25];
+            app.EEditFieldLabel_7.Text = '2.';
+
+            % Create UstawodpowiedniewartociPanel
+            app.UstawodpowiedniewartociPanel = uipanel(app.LeftPanel);
+            app.UstawodpowiedniewartociPanel.Title = 'Ustaw odpowiednie wartości ';
+            app.UstawodpowiedniewartociPanel.BackgroundColor = [0.8196 0.5098 0.7294];
+            app.UstawodpowiedniewartociPanel.Position = [5 118 214 233];
+
+            % Create EditField_2
+            app.EditField_2 = uieditfield(app.UstawodpowiedniewartociPanel, 'numeric');
+            app.EditField_2.Limits = [-5000 5000];
+            app.EditField_2.ValueChangedFcn = createCallbackFcn(app, @EditField_2ValueChanged, true);
+            app.EditField_2.Position = [65 135 100 25];
+
+            % Create EditField_3
+            app.EditField_3 = uieditfield(app.UstawodpowiedniewartociPanel, 'numeric');
+            app.EditField_3.Limits = [1 48];
+            app.EditField_3.ValueChangedFcn = createCallbackFcn(app, @EditField_3ValueChanged, true);
+            app.EditField_3.Position = [66 74 100 25];
+            app.EditField_3.Value = 1;
+
+            % Create EEditFieldLabel_2
+            app.EEditFieldLabel_2 = uilabel(app.UstawodpowiedniewartociPanel);
+            app.EEditFieldLabel_2.HorizontalAlignment = 'right';
+            app.EEditFieldLabel_2.Position = [18 135 38 25];
+            app.EEditFieldLabel_2.Text = 'V [eV]';
+
+            % Create EEditFieldLabel_3
+            app.EEditFieldLabel_3 = uilabel(app.UstawodpowiedniewartociPanel);
+            app.EEditFieldLabel_3.HorizontalAlignment = 'right';
+            app.EEditFieldLabel_3.Position = [31 74 25 25];
+            app.EEditFieldLabel_3.Text = 'n';
+
+            % Create EeVEditFieldLabel
+            app.EeVEditFieldLabel = uilabel(app.UstawodpowiedniewartociPanel);
+            app.EeVEditFieldLabel.HorizontalAlignment = 'right';
+            app.EeVEditFieldLabel.Position = [18 170 38 22];
+            app.EeVEditFieldLabel.Text = 'E [eV]';
+
+            % Create EeVEditField
+            app.EeVEditField = uieditfield(app.UstawodpowiedniewartociPanel, 'numeric');
+            app.EeVEditField.Limits = [0 Inf];
+            app.EeVEditField.AllowEmpty = 'on';
+            app.EeVEditField.ValueChangedFcn = createCallbackFcn(app, @EeVEditFieldValueChanged, true);
+            app.EeVEditField.Position = [65 169 100 25];
+
+            % Create DodatkowodlastudniorazoscylatoraLabel
+            app.DodatkowodlastudniorazoscylatoraLabel = uilabel(app.UstawodpowiedniewartociPanel);
+            app.DodatkowodlastudniorazoscylatoraLabel.Position = [4 103 209 22];
+            app.DodatkowodlastudniorazoscylatoraLabel.Text = 'Dodatkowo dla studni oraz oscylatora ';
+
+            % Create DodatkowodlasuperpozycjiLabel
+            app.DodatkowodlasuperpozycjiLabel = uilabel(app.UstawodpowiedniewartociPanel);
+            app.DodatkowodlasuperpozycjiLabel.Position = [5 43 158 22];
+            app.DodatkowodlasuperpozycjiLabel.Text = 'Dodatkowo dla superpozycji ';
+
+            % Create EEditFieldLabel_5
+            app.EEditFieldLabel_5 = uilabel(app.UstawodpowiedniewartociPanel);
+            app.EEditFieldLabel_5.HorizontalAlignment = 'right';
+            app.EEditFieldLabel_5.Position = [35 14 25 25];
+            app.EEditFieldLabel_5.Text = 'm';
+
+            % Create EditField_5
+            app.EditField_5 = uieditfield(app.UstawodpowiedniewartociPanel, 'numeric');
+            app.EditField_5.Limits = [2 48];
+            app.EditField_5.ValueChangedFcn = createCallbackFcn(app, @EditField_5ValueChanged, true);
+            app.EditField_5.Position = [67 15 100 22];
+            app.EditField_5.Value = 2;
+
+            % Create RYSUJButton
+            app.RYSUJButton = uibutton(app.LeftPanel, 'push');
+            app.RYSUJButton.ButtonPushedFcn = createCallbackFcn(app, @RYSUJButtonPushed, true);
+            app.RYSUJButton.BackgroundColor = [0.5216 0.2902 0.4745];
+            app.RYSUJButton.FontWeight = 'bold';
+            app.RYSUJButton.FontAngle = 'italic';
+            app.RYSUJButton.FontColor = [1 1 1];
+            app.RYSUJButton.Position = [70 86 100 23];
+            app.RYSUJButton.Text = 'RYSUJ';
+
+            % Create Label
+            app.Label = uilabel(app.LeftPanel);
+            app.Label.Position = [6 56 25 22];
+            app.Label.Text = '';
+
+            % Create WprzypadkuniepodaniaadnychwartociwywietlaneswartocidomylneLabel
+            app.WprzypadkuniepodaniaadnychwartociwywietlaneswartocidomylneLabel = uilabel(app.LeftPanel);
+            app.WprzypadkuniepodaniaadnychwartociwywietlaneswartocidomylneLabel.WordWrap = 'on';
+            app.WprzypadkuniepodaniaadnychwartociwywietlaneswartocidomylneLabel.FontSize = 10;
+            app.WprzypadkuniepodaniaadnychwartociwywietlaneswartocidomylneLabel.Position = [15 46 198 26];
+            app.WprzypadkuniepodaniaadnychwartociwywietlaneswartocidomylneLabel.Text = 'W przypadku nie podania żadnych wartości wyświetlane są wartości domyślne';
+
+            % Create Label_2
+            app.Label_2 = uilabel(app.LeftPanel);
+            app.Label_2.WordWrap = 'on';
+            app.Label_2.FontSize = 10;
+            app.Label_2.Position = [15 12 198 26];
+            app.Label_2.Text = 'Stany niewiążące lepiej obrazują działanie dla małych energi, wiążące dla większych';
+
+            % Create RightPanel
+            app.RightPanel = uipanel(app.GridLayout);
+            app.RightPanel.BackgroundColor = [1 1 1];
+            app.RightPanel.Layout.Row = 1;
+            app.RightPanel.Layout.Column = 2;
+
+            % Create UIAxes2
+            app.UIAxes2 = uiaxes(app.RightPanel);
+            title(app.UIAxes2, 'Title')
+            xlabel(app.UIAxes2, 'X')
+            ylabel(app.UIAxes2, 'Y')
+            zlabel(app.UIAxes2, 'Z')
+            app.UIAxes2.Position = [4 248 428 257];
+
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.RightPanel);
+            title(app.UIAxes, 'Title')
+            xlabel(app.UIAxes, 'X')
+            ylabel(app.UIAxes, 'Y')
+            zlabel(app.UIAxes, 'Z')
+            app.UIAxes.Position = [4 1 428 237];
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = projekt_EB_WM
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end]]></w:t></w:r></w:p></w:body></w:document>
