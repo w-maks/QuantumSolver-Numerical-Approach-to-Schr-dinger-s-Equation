@@ -1,8 +1,22 @@
-## Quantum Solver – A MATLAB App for Solving the Schrödinger Equation
+# Quantum Solver – A MATLAB App for Solving the Schrödinger Equation
 
 **Quantum Solver** is an interactive MATLAB application for numerically solving the one-dimensional Schrödinger equation using the **Finite Difference Method (FDM)**.
 
 The app allows users to explore quantum mechanical behaviors under different potential profiles, visualize wavefunctions and probability densities, and even observe quantum animations such as superpositions and time evolution.
+
+---
+
+## Authors
+
+Project developed collaboratively by:
+
+- **Wiktoria Maksymiak**:  
+  Modules: `calka.m`, `potencjal.m`, `psi_zwiazane.m`, `psit_zwiazane.m`, `psi_niezwiazane.m`, `superpozycja.m`
+
+- **Ewelina Borkowska**:  
+  Modules: `calculatePsiX.m`, `psix_bariera.m`
+
+> **Note:** All core logic and GUI functionality were implemented jointly.
 
 ---
 
@@ -41,6 +55,14 @@ The app allows users to explore quantum mechanical behaviors under different pot
 ---
 
 ## Example Scenarios
+
+### 🔸 Potential Step
+
+<div align="center">
+  <img src="img/przypadek_skok.png" width="600"/>
+</div>
+
+---
 
 ### 🔸 Potential Barier
 
@@ -81,20 +103,6 @@ The app automatically detects and adjusts invalid input values, informing the us
   <div align="center">
     <img src="img/warning_wartoscV.png" width="400"/>
   </div>
-
----
-
-## Authors
-
-Project developed collaboratively by:
-
-- **Wiktoria Maksymiak**:  
-  Modules: `calka.m`, `potencjal.m`, `psi_zwiazane.m`, `psit_zwiazane.m`, `psi_niezwiazane.m`, `superpozycja.m`
-
-- **Ewelina Borkowska**:  
-  Modules: `calculatePsiX.m`, `psix_bariera.m`
-
-> **Note:** All core logic and GUI functionality were implemented jointly.
 
 ---
 
